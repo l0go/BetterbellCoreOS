@@ -1,0 +1,3 @@
+[submodule "betterbell"]
+	path = betterbell
+	url = https://codeberg.org/logo/betterbell.git

@@ -1,0 +1,72 @@
+variant: fcos
+version: 1.5.0
+passwd:
+  users:
+    - name: core
+      password_hash: $y$j9T$ttXazkZN3t9p8Wgp7IY7m/$ikTwOvcCr7pdxiZdoY2zMsh0ct66ad/DJ0IjQdClrf4
+      ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJf+9znMHVhf6xqbfEhOyFuNO0KiVEvs7kiQy7mLedBD 
+systemd:
+  units:
+    # Installs pipewire on first boot, reboots to apply
+    - name: rpm-ostree-install-pipewire.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Install pipewire with rpm-ostree
+        Wants=network-online.target
+        After=network-online.target
+        Before=zincati.service
+        ConditionPathExists=!/var/lib/%N.stamp
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/rpm-ostree install -y --allow-inactive pipewire pipewire-alsa pipewire-utils pulseaudio alsa-utils alsa-firmware pciutils inxi
+        ExecStart=/bin/sh -c "grep -E '^audio:' /usr/lib/group | tee -a /etc/group"
+        ExecStart=usermod -aG audio core
+        ExecStart=/bin/touch /var/lib/%N.stamp
+        ExecStart=/bin/systemctl --no-block reboot
+        [Install]
+        RequiredBy=multi-user.target
+    # Enables pipewire once it is installed
+    - name: link-pipewire.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Links pipewire
+        After=rpm-ostree-install-pipewire.service
+        Before=zincati.service
+        ConditionPathExists=/usr/lib/systemd/user/pipewire.service
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=cp -r /usr/share/pipewire/ /etc/pipewire/
+        ExecStart=mkdir -p /home/core/.config/systemd/user/default.target.wants
+        ExecStart=chown -R core /home/core/.config
+        ExecStart=mkdir -p /home/core/.config/systemd/user/socket.target.wants
+        ExecStart=ln -sf /usr/lib/systemd/user/pipewire.service /home/core/.config/systemd/user/default.target.wants/pipewire.service
+        ExecStart=ln -sf /usr/lib/systemd/user/pipewire.socket /home/core/.config/systemd/user/socket.target.wants/pipewire.socket
+        [Install]
+        WantedBy=multi-user.target
+    # Runs the betterbell daemon
+    - name: betterbell.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=A bell server
+        After=link-pipewire.service
+        Wants=pipewire.service
+        ConditionPathExists=/run/user/1000/pipewire-0
+        [Service]
+        User=core
+        TimeoutStartSec=0
+        ExecStartPre=/bin/podman pull ghcr.io/l0go/betterbell:1.1.0
+        ExecStartPre=mkdir -p /home/core/db
+        ExecStartPre=chown -R core /home/core/db
+        ExecStart=/bin/podman run --replace --restart=on-failure --privileged -it -v /run/user/1000/pipewire-0:/tmp/pipewire-0 -e XDG_RUNTIME_DIR=/tmp -p 3333:3333 -v /home/core/db/:/db/ --name betterbell1 ghcr.io/l0go/betterbell:1.1.0
+        [Install]
+        WantedBy=multi-user.target
+storage:
+  files:
+    - path: /var/lib/systemd/linger/core
+      mode: 0644
