@@ -1,0 +1,33 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+      - actions
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install dependencies 
+        working-directory: .
+        run: |
+          apt install -y podman qemu-user-static
+      - name: Build container
+        working-directory: .
+        run: |
+          podman manifest create betterbell
+          podman build --platform linux/amd64,linux/arm64 --manifest betterbell .
+      - name: Log in to Github Packages
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to Github Packages
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: betterbell
+          registry: ghcr.io/l0go
