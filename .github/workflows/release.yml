@@ -21,7 +21,8 @@ jobs:
         working-directory: .
         run: |
           podman manifest create betterbell
-          podman build --platform linux/amd64,linux/arm64 --manifest betterbell .
+          podman build --platform linux/amd64 --manifest betterbell .
+          podman build --platform linux/arm64 --manifest betterbell .
       - name: Log in to Github Packages
         uses: redhat-actions/podman-login@v1
         with:
