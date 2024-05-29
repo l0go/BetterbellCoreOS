@@ -56,16 +56,17 @@ systemd:
         Description=A bell server
         After=link-pipewire.service
         Wants=pipewire.service
-        ConditionPathExists=/run/user/1000/pipewire-0
+        ConditionPathExists=/home/core/.config/systemd/user/default.target.wants/pipewire.service
         [Service]
         User=core
+        Environment="XDG_RUNTIME_DIR=/run/user/1000/"
         TimeoutStartSec=0
         ExecStartPre=/bin/podman pull ghcr.io/l0go/betterbell:1.1.0
         ExecStartPre=mkdir -p /home/core/db
         ExecStartPre=chown -R core /home/core/db
         ExecStart=/bin/podman run --replace --restart=on-failure --privileged -it -v /run/user/1000/pipewire-0:/tmp/pipewire-0 -e XDG_RUNTIME_DIR=/tmp -p 3333:3333 -v /home/core/db/:/db/ --name betterbell1 ghcr.io/l0go/betterbell:1.1.0
         [Install]
-        WantedBy=multi-user.target
+         WantedBy=multi-user.target
 storage:
   files:
     - path: /var/lib/systemd/linger/core
