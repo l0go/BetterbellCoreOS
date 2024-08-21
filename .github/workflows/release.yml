@@ -17,11 +17,14 @@ jobs:
         working-directory: .
         run: |
           sudo apt install -y podman qemu-user-static
-      - name: Build container
+      - name: Build amd64 container
         working-directory: .
         run: |
           podman manifest create betterbell
           podman build --platform linux/amd64 --manifest betterbell .
+      - name: Build arm64 container
+        working-directory: .
+        run: |
           podman build --platform linux/arm64 --manifest betterbell .
       - name: Log in to Github Packages
         uses: redhat-actions/podman-login@v1
