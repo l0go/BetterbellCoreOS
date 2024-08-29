@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies 
         working-directory: .
         run: |
-          sudo apt install -y podman qemu-user-static
+          sudo apt install -y podman qemu-user-static pkg-config
       - name: Build amd64 container
         working-directory: .
         run: |
