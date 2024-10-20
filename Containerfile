@@ -1,13 +1,14 @@
 FROM golang:1.22.3-alpine3.19 AS build
 WORKDIR /app/src
 COPY betterbell/ /app/src
-RUN apk add --no-cache --update gcc musl-dev pkgconfig alsa-lib-dev tzdata
+RUN apk add --no-cache --update gcc musl-dev pkgconfig alsa-lib-dev
 ENV CGO_ENABLED 1
 RUN go build codeberg.org/logo/betterbell
 
 FROM alpine:3.19
 CMD ["/bin/sh"]
-RUN apk add --no-cache --update pipewire pipewire-alsa alsa-utils
+RUN apk add --no-cache --update pipewire pipewire-alsa alsa-utils tzdata
+RUN ln -s /usr/share/zoneinfo/America/Detroit /etc/localtime
 RUN addgroup root audio
 WORKDIR /app/src
 COPY --from=build /app/src/betterbell /app/src/
